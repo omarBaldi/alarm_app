@@ -16,5 +16,5 @@ export const getNumberSeconds = ({
   const endDateMs = endDate.getTime();
 
   const secondsInBetween: number = Math.round(Math.abs(endDateMs - startDateMs) / 1000);
-  return startDate > endDate ? secondsInBetween * -1 : secondsInBetween;
+  return startDate < endDate ? secondsInBetween * -1 : secondsInBetween;
 };

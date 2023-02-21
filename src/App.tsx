@@ -15,6 +15,7 @@ function App() {
   const inputTimeReference = useRef<HTMLInputElement>(null);
 
   //* Audio state
+  const isAudioPlaying = useRef<boolean>(false);
   const audioContext = useRef<AudioContext | null>(null);
   const audioBuffer = useRef<AudioBuffer | null>(null);
   const sourceNode = useRef<AudioBufferSourceNode | null>(null);
@@ -57,9 +58,11 @@ function App() {
        * state, I can either play the audio or stop it.
        */
       if (diffInSeconds <= 60) {
-        alarm.isActive ? playAudio() : undefined;
+        alarm.isActive ? playAudio() : stopAudio();
       } else {
         //TODO: increment index to go to next alarm
+        //* temporarily invoke function to stop audio
+        stopAudio();
       }
     };
 
@@ -135,7 +138,7 @@ function App() {
   }
 
   function playAudio(): void {
-    if (!audioContext.current || !audioBuffer.current) return;
+    if (!audioContext.current || !audioBuffer.current || isAudioPlaying.current) return;
 
     if (audioContext.current.state === 'suspended') {
       audioContext.current.resume();
@@ -145,7 +148,22 @@ function App() {
     sourceNode.current.buffer = audioBuffer.current;
     sourceNode.current.connect(audioContext.current.destination);
 
+    sourceNode.current.loop = true;
     sourceNode.current.start(0);
+
+    isAudioPlaying.current = true;
+  }
+
+  function stopAudio(): void {
+    if (!sourceNode.current || !isAudioPlaying.current) return;
+
+    sourceNode.current.stop();
+    sourceNode.current.disconnect();
+
+    sourceNode.current = null;
+    isAudioPlaying.current = false;
+
+    audioContext.current?.suspend();
   }
 
   const sortedAlarms = useMemo(() => {
