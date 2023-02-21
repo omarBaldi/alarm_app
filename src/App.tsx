@@ -11,14 +11,38 @@ interface Alarm {
 const defaultInitialTimeValue = '00:00';
 
 function App() {
-  const [alarms, setAlarms] = useState<Map<string, { isActive: boolean }>>(new Map());
   const inputTimeReference = useRef<HTMLInputElement>(null);
+
+  //* Alarms state
+  const [activeAlarmIndex, setActiveAlarmIndex] = useState<number>(0);
+  const [alarms, setAlarms] = useState<Map<string, { isActive: boolean }>>(new Map());
 
   //* Audio state
   const isAudioPlaying = useRef<boolean>(false);
   const audioContext = useRef<AudioContext | null>(null);
   const audioBuffer = useRef<AudioBuffer | null>(null);
   const sourceNode = useRef<AudioBufferSourceNode | null>(null);
+
+  const sortedAlarms = useMemo(() => {
+    return [...alarms]
+      .reduce<{ alarmLabel: string; isActive: boolean; timeSet: string }[]>(
+        (acc, [timeSet, { isActive }]) => {
+          const hoursLabel = new Date(timeSet).getHours().toString().padStart(2, '0');
+          const minutesLabel = new Date(timeSet).getMinutes().toString().padStart(2, '0');
+
+          return [
+            ...acc,
+            {
+              alarmLabel: `${hoursLabel}:${minutesLabel}`,
+              isActive,
+              timeSet,
+            },
+          ];
+        },
+        []
+      )
+      .sort((a, b) => a.timeSet.localeCompare(b.timeSet));
+  }, [alarms]);
 
   /**
    * As soon as the component gets mounted,
@@ -60,24 +84,23 @@ function App() {
       if (diffInSeconds <= 60) {
         alarm.isActive ? playAudio() : stopAudio();
       } else {
-        //TODO: increment index to go to next alarm
-        //* temporarily invoke function to stop audio
         stopAudio();
+        setActiveAlarmIndex((prevIndex) => prevIndex + 1);
       }
     };
 
-    if (alarms.size <= 0) return;
+    const currentActiveAlarm = sortedAlarms[activeAlarmIndex];
+    if (typeof currentActiveAlarm === 'undefined') return;
 
     /**
      * I know at this point that there is at least
      * one alarm that has been set, so get the values.
      */
-    const startIndex = 0;
-    const [key, value] = [...alarms][startIndex];
+    const { isActive, timeSet } = currentActiveAlarm;
 
     const firstAlarmObj: Alarm = {
-      timeSet: new Date(key),
-      isActive: value.isActive,
+      timeSet: new Date(timeSet),
+      isActive,
     };
 
     const interval = setInterval(() => checkFirstAlarmState(firstAlarmObj), 1000);
@@ -85,7 +108,7 @@ function App() {
     return () => {
       clearInterval(interval);
     };
-  }, [alarms]);
+  }, [sortedAlarms, activeAlarmIndex]);
 
   function handleCreateNewAlarm(e: React.FormEvent): void {
     e.preventDefault();
@@ -165,27 +188,6 @@ function App() {
 
     audioContext.current?.suspend();
   }
-
-  const sortedAlarms = useMemo(() => {
-    return [...alarms]
-      .reduce<{ alarmLabel: string; isActive: boolean; timeSet: string }[]>(
-        (acc, [timeSet, { isActive }]) => {
-          const hoursLabel = new Date(timeSet).getHours().toString().padStart(2, '0');
-          const minutesLabel = new Date(timeSet).getMinutes().toString().padStart(2, '0');
-
-          return [
-            ...acc,
-            {
-              alarmLabel: `${hoursLabel}:${minutesLabel}`,
-              isActive,
-              timeSet,
-            },
-          ];
-        },
-        []
-      )
-      .sort((a, b) => a.timeSet.localeCompare(b.timeSet));
-  }, [alarms]);
 
   return (
     <div className='App'>
