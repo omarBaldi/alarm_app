@@ -41,6 +41,19 @@ function App() {
     inputTimeReference.current.value = defaultInitialTimeValue;
   };
 
+  const handleAlarmStateChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const { checked: updatedAlarmActiveState, dataset } = e.target;
+    const alarmIndex: string | undefined = dataset['index'];
+
+    if (typeof alarmIndex === 'undefined' || isNaN(+alarmIndex)) return;
+
+    setAlarms((prevAlarms) => {
+      return [...prevAlarms].map((alarm, i) =>
+        i === +alarmIndex ? { ...alarm, isActive: updatedAlarmActiveState } : alarm
+      );
+    });
+  };
+
   return (
     <div className='App'>
       <form
@@ -56,13 +69,32 @@ function App() {
         <button type='submit'>Add alarm</button>
       </form>
 
-      {alarms.map(({ timeSet }, index) => {
+      {alarms.map(({ timeSet, isActive }, index) => {
         const hoursLabel = timeSet.getHours().toString().padStart(2, '0');
         const minutesLabel = timeSet.getMinutes().toString().padStart(2, '0');
 
         const key = `alarm-${timeSet.toString()}-#${index}`;
 
-        return <div key={key}>{`${hoursLabel}:${minutesLabel}`}</div>;
+        return (
+          <div
+            key={key}
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <h4>{`${hoursLabel}:${minutesLabel}`}</h4>
+            <input
+              type='checkbox'
+              name='alarmActiveState'
+              checked={isActive}
+              data-index={index}
+              onChange={handleAlarmStateChange}
+            />
+          </div>
+        );
       })}
     </div>
   );
