@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import './App.css';
 
 interface Alarm {
@@ -52,7 +52,6 @@ function App() {
     setAlarms((prevAlarms) => {
       const updatedAlarms = new Map(prevAlarms);
       const prevCurrentAlarmClickedValues = updatedAlarms.get(alarmTimeKey);
-      console.log(prevCurrentAlarmClickedValues);
 
       return typeof prevCurrentAlarmClickedValues === 'undefined'
         ? prevAlarms
@@ -62,6 +61,27 @@ function App() {
           });
     });
   };
+
+  const sortedAlarms = useMemo(() => {
+    return [...alarms]
+      .reduce<{ alarmLabel: string; isActive: boolean; timeSet: string }[]>(
+        (acc, [timeSet, { isActive }]) => {
+          const hoursLabel = new Date(timeSet).getHours().toString().padStart(2, '0');
+          const minutesLabel = new Date(timeSet).getMinutes().toString().padStart(2, '0');
+
+          return [
+            ...acc,
+            {
+              alarmLabel: `${hoursLabel}:${minutesLabel}`,
+              isActive,
+              timeSet,
+            },
+          ];
+        },
+        []
+      )
+      .sort((a, b) => a.timeSet.localeCompare(b.timeSet));
+  }, [alarms]);
 
   return (
     <div className='App'>
@@ -78,10 +98,7 @@ function App() {
         <button type='submit'>Add alarm</button>
       </form>
 
-      {[...alarms].map(([timeSet, { isActive }], index) => {
-        const hoursLabel = new Date(timeSet).getHours().toString().padStart(2, '0');
-        const minutesLabel = new Date(timeSet).getMinutes().toString().padStart(2, '0');
-
+      {sortedAlarms.map(({ alarmLabel, isActive, timeSet }, index) => {
         const key = `alarm-${timeSet.toString()}-#${index}`;
 
         return (
@@ -94,7 +111,7 @@ function App() {
               gap: '0.5rem',
             }}
           >
-            <h4>{`${hoursLabel}:${minutesLabel}`}</h4>
+            <h4>{alarmLabel}</h4>
             <input
               type='checkbox'
               name='alarmActiveState'
