@@ -14,7 +14,7 @@ function App() {
   const inputTimeReference = useRef<HTMLInputElement>(null);
 
   //* Alarms state
-  const [activeAlarmIndex, setActiveAlarmIndex] = useState<number>(0);
+  const [activeAlarmIndex, setActiveAlarmIndex] = useState<number>(100);
   const [alarms, setAlarms] = useState<Map<string, { isActive: boolean }>>(new Map());
 
   //* Audio state
@@ -142,18 +142,18 @@ function App() {
   }
 
   function handleAlarmStateChange(e: React.ChangeEvent<HTMLInputElement>): void {
-    const { checked: updatedAlarmActiveState, dataset } = e.target;
-    const alarmTimeKey: string | undefined = dataset['timeSet'];
+    const { checked: updatedAlarmActiveState, dataset, parentElement } = e.target;
+    const alarmKey: string | undefined = parentElement?.dataset['timeKey'];
 
-    if (typeof alarmTimeKey === 'undefined') return;
+    if (typeof alarmKey === 'undefined') return;
 
     setAlarms((prevAlarms) => {
       const updatedAlarms = new Map(prevAlarms);
-      const prevCurrentAlarmClickedValues = updatedAlarms.get(alarmTimeKey);
+      const prevCurrentAlarmClickedValues = updatedAlarms.get(alarmKey);
 
       return typeof prevCurrentAlarmClickedValues === 'undefined'
         ? prevAlarms
-        : updatedAlarms.set(alarmTimeKey, {
+        : updatedAlarms.set(alarmKey, {
             ...prevCurrentAlarmClickedValues,
             isActive: updatedAlarmActiveState,
           });
@@ -189,6 +189,26 @@ function App() {
     audioContext.current?.suspend();
   }
 
+  /**
+   * ! Important
+   * Take into consideration that the moment I will delete one of the
+   * alarms the logic behind setting the active index will not work anymore.
+   * TODO: to refactor logic previously written
+   */
+  function deleteAlarm(e: React.MouseEvent<HTMLButtonElement>): void {
+    const { parentElement } = e.target as HTMLButtonElement;
+    const alarmKey: string | undefined = parentElement?.dataset['timeKey'];
+
+    if (typeof alarmKey === 'undefined') return;
+
+    setAlarms((prevAlarms) => {
+      const updatedAlarms = new Map(prevAlarms);
+      updatedAlarms.delete(alarmKey);
+
+      return updatedAlarms;
+    });
+  }
+
   return (
     <div className='App'>
       <form
@@ -210,6 +230,7 @@ function App() {
         return (
           <div
             key={key}
+            data-time-key={timeSet}
             style={{
               display: 'flex',
               justifyContent: 'center',
@@ -222,9 +243,9 @@ function App() {
               type='checkbox'
               name='alarmActiveState'
               checked={isActive}
-              data-time-set={timeSet}
               onChange={handleAlarmStateChange}
             />
+            <button onClick={deleteAlarm}>Delete</button>
           </div>
         );
       })}
