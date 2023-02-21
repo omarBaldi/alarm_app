@@ -20,18 +20,21 @@ function App() {
         endDate: alarm.timeSet,
       });
 
+      if (diffInSeconds < 0) return;
+
       /**
        * If the amount of seconds is between 0 and 60 included
        * that means based on the current time (now) I am in the range
        * of the alarm time set. This means that depending on the active
        * state, I can either play the audio or stop it.
        */
-      const isInRange = diffInSeconds >= 0 && diffInSeconds <= 60;
-
-      if (isInRange) {
+      if (diffInSeconds <= 60) {
+        //TODO: logic to be written
+      } else {
         /**
-         * TODO: logic to be written
+         * TODO:
          */
+        //TODO: increment index to go to next alarm
       }
     };
 
@@ -41,7 +44,8 @@ function App() {
      * I know at this point that there is at least
      * one alarm that has been set, so get the values.
      */
-    const [[key, value]] = [...alarms];
+    const startIndex = 0;
+    const [key, value] = [...alarms][startIndex];
 
     const firstAlarmObj: Alarm = {
       timeSet: new Date(key),
