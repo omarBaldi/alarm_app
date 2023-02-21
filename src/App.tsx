@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
+import { getNumberSeconds } from './utils/get-number-seconds';
 
 interface Alarm {
   timeSet: Date;
@@ -11,6 +12,48 @@ const defaultInitialTimeValue = '00:00';
 function App() {
   const [alarms, setAlarms] = useState<Map<string, { isActive: boolean }>>(new Map());
   const inputTimeReference = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const checkFirstAlarmState = (alarm: Alarm) => {
+      const diffInSeconds = getNumberSeconds({
+        startDate: new Date(),
+        endDate: alarm.timeSet,
+      });
+
+      /**
+       * If the amount of seconds is between 0 and 60 included
+       * that means based on the current time (now) I am in the range
+       * of the alarm time set. This means that depending on the active
+       * state, I can either play the audio or stop it.
+       */
+      const isInRange = diffInSeconds >= 0 && diffInSeconds <= 60;
+
+      if (isInRange) {
+        /**
+         * TODO: logic to be written
+         */
+      }
+    };
+
+    if (alarms.size <= 0) return;
+
+    /**
+     * I know at this point that there is at least
+     * one alarm that has been set, so get the values.
+     */
+    const [[key, value]] = [...alarms];
+
+    const firstAlarmObj: Alarm = {
+      timeSet: new Date(key),
+      isActive: value.isActive,
+    };
+
+    const interval = setInterval(() => checkFirstAlarmState(firstAlarmObj), 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [alarms]);
 
   const handleCreateNewAlarm = (e: React.FormEvent): void => {
     e.preventDefault();
