@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import './App.css';
 import { getNumberSeconds } from './utils/get-number-seconds';
+import alarmSound from './assets/audio/alarm.mp3';
+import './App.css';
 
 interface Alarm {
   timeSet: Date;
@@ -12,6 +13,33 @@ const defaultInitialTimeValue = '00:00';
 function App() {
   const [alarms, setAlarms] = useState<Map<string, { isActive: boolean }>>(new Map());
   const inputTimeReference = useRef<HTMLInputElement>(null);
+
+  //* Audio state
+  const audioContext = useRef<AudioContext | null>(null);
+  const audioBuffer = useRef<AudioBuffer | null>(null);
+  const sourceNode = useRef<AudioBufferSourceNode | null>(null);
+
+  /**
+   * As soon as the component gets mounted,
+   * create an audio file
+   */
+  useEffect(() => {
+    //* create an AudioContext when the component mounts
+    const context = new AudioContext();
+    audioContext.current = context;
+
+    //* load the audio file into an AudioBuffer
+    fetch(alarmSound)
+      .then((response) => response.arrayBuffer())
+      .then((arrayBuffer) => context.decodeAudioData(arrayBuffer))
+      .then((buffer) => (audioBuffer.current = buffer))
+      .catch((err) => console.error(err));
+
+    //* clean up the AudioContext when the component unmounts
+    return () => {
+      context.close();
+    };
+  }, []);
 
   useEffect(() => {
     const checkFirstAlarmState = (alarm: Alarm) => {
@@ -29,11 +57,8 @@ function App() {
        * state, I can either play the audio or stop it.
        */
       if (diffInSeconds <= 60) {
-        //TODO: logic to be written
+        alarm.isActive ? playAudio() : undefined;
       } else {
-        /**
-         * TODO:
-         */
         //TODO: increment index to go to next alarm
       }
     };
@@ -59,7 +84,7 @@ function App() {
     };
   }, [alarms]);
 
-  const handleCreateNewAlarm = (e: React.FormEvent): void => {
+  function handleCreateNewAlarm(e: React.FormEvent): void {
     e.preventDefault();
 
     /**
@@ -88,9 +113,9 @@ function App() {
 
     //* reset input value
     inputTimeReference.current.value = defaultInitialTimeValue;
-  };
+  }
 
-  const handleAlarmStateChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  function handleAlarmStateChange(e: React.ChangeEvent<HTMLInputElement>): void {
     const { checked: updatedAlarmActiveState, dataset } = e.target;
     const alarmTimeKey: string | undefined = dataset['timeSet'];
 
@@ -107,7 +132,21 @@ function App() {
             isActive: updatedAlarmActiveState,
           });
     });
-  };
+  }
+
+  function playAudio(): void {
+    if (!audioContext.current || !audioBuffer.current) return;
+
+    if (audioContext.current.state === 'suspended') {
+      audioContext.current.resume();
+    }
+
+    sourceNode.current = audioContext.current.createBufferSource();
+    sourceNode.current.buffer = audioBuffer.current;
+    sourceNode.current.connect(audioContext.current.destination);
+
+    sourceNode.current.start(0);
+  }
 
   const sortedAlarms = useMemo(() => {
     return [...alarms]
