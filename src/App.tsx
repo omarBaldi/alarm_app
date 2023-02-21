@@ -6,6 +6,8 @@ interface Alarm {
   isActive: boolean;
 }
 
+const defaultInitialTimeValue = '00:00';
+
 function App() {
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const inputTimeReference = useRef<HTMLInputElement>(null);
@@ -19,23 +21,24 @@ function App() {
      * using a reference to access the value is optimal in this case.
      */
 
-    setAlarms((prevAlarms) => {
-      if (!inputTimeReference.current) return prevAlarms;
+    if (!inputTimeReference.current) return;
 
-      const { value: updatedAlarmValue } = inputTimeReference.current;
-      const [hours, minutes] = updatedAlarmValue.split(':');
+    const { value: updatedAlarmValue } = inputTimeReference.current;
+    const [hours, minutes] = updatedAlarmValue.split(':');
 
-      const alarmTime = new Date();
-      alarmTime.setHours(+hours);
-      alarmTime.setMinutes(+minutes);
+    const alarmTime = new Date();
+    alarmTime.setHours(+hours);
+    alarmTime.setMinutes(+minutes);
 
-      const newAlarm: Alarm = {
-        isActive: true,
-        timeSet: alarmTime,
-      };
+    const newAlarm: Alarm = {
+      isActive: true,
+      timeSet: alarmTime,
+    };
 
-      return [...prevAlarms, newAlarm];
-    });
+    setAlarms((prevAlarms) => [...prevAlarms, newAlarm]);
+
+    //* reset input value
+    inputTimeReference.current.value = defaultInitialTimeValue;
   };
 
   return (
@@ -44,7 +47,12 @@ function App() {
         onSubmit={handleCreateNewAlarm}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
       >
-        <input type='time' name='alarmInput' ref={inputTimeReference} />
+        <input
+          type='time'
+          name='alarmInput'
+          ref={inputTimeReference}
+          defaultValue={defaultInitialTimeValue}
+        />
         <button type='submit'>Add alarm</button>
       </form>
 
