@@ -9,7 +9,7 @@ interface Alarm {
 const defaultInitialTimeValue = '00:00';
 
 function App() {
-  const [alarms, setAlarms] = useState<Alarm[]>([]);
+  const [alarms, setAlarms] = useState<Map<string, { isActive: boolean }>>(new Map());
   const inputTimeReference = useRef<HTMLInputElement>(null);
 
   const handleCreateNewAlarm = (e: React.FormEvent): void => {
@@ -29,13 +29,15 @@ function App() {
     const alarmTime = new Date();
     alarmTime.setHours(+hours);
     alarmTime.setMinutes(+minutes);
+    alarmTime.setSeconds(0);
 
-    const newAlarm: Alarm = {
-      isActive: true,
-      timeSet: alarmTime,
-    };
+    setAlarms((prevAlarms) => {
+      const updatedAlarms = new Map(prevAlarms);
 
-    setAlarms((prevAlarms) => [...prevAlarms, newAlarm]);
+      return updatedAlarms.has(alarmTime.toString())
+        ? prevAlarms
+        : updatedAlarms.set(alarmTime.toString(), { isActive: true });
+    });
 
     //* reset input value
     inputTimeReference.current.value = defaultInitialTimeValue;
@@ -43,14 +45,21 @@ function App() {
 
   const handleAlarmStateChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { checked: updatedAlarmActiveState, dataset } = e.target;
-    const alarmIndex: string | undefined = dataset['index'];
+    const alarmTimeKey: string | undefined = dataset['timeSet'];
 
-    if (typeof alarmIndex === 'undefined' || isNaN(+alarmIndex)) return;
+    if (typeof alarmTimeKey === 'undefined') return;
 
     setAlarms((prevAlarms) => {
-      return [...prevAlarms].map((alarm, i) =>
-        i === +alarmIndex ? { ...alarm, isActive: updatedAlarmActiveState } : alarm
-      );
+      const updatedAlarms = new Map(prevAlarms);
+      const prevCurrentAlarmClickedValues = updatedAlarms.get(alarmTimeKey);
+      console.log(prevCurrentAlarmClickedValues);
+
+      return typeof prevCurrentAlarmClickedValues === 'undefined'
+        ? prevAlarms
+        : updatedAlarms.set(alarmTimeKey, {
+            ...prevCurrentAlarmClickedValues,
+            isActive: updatedAlarmActiveState,
+          });
     });
   };
 
@@ -69,9 +78,9 @@ function App() {
         <button type='submit'>Add alarm</button>
       </form>
 
-      {alarms.map(({ timeSet, isActive }, index) => {
-        const hoursLabel = timeSet.getHours().toString().padStart(2, '0');
-        const minutesLabel = timeSet.getMinutes().toString().padStart(2, '0');
+      {[...alarms].map(([timeSet, { isActive }], index) => {
+        const hoursLabel = new Date(timeSet).getHours().toString().padStart(2, '0');
+        const minutesLabel = new Date(timeSet).getMinutes().toString().padStart(2, '0');
 
         const key = `alarm-${timeSet.toString()}-#${index}`;
 
@@ -90,7 +99,7 @@ function App() {
               type='checkbox'
               name='alarmActiveState'
               checked={isActive}
-              data-index={index}
+              data-time-set={timeSet}
               onChange={handleAlarmStateChange}
             />
           </div>
